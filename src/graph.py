@@ -8,26 +8,43 @@ from src.nodes import (
     write_to_db_node,
     cancel_node,
 )
+from src.utils import save_mermaid_diagram
 
 
-# Build the graph
-builder = StateGraph(State)
+def create_workflow_graph():
+    """Create and compile the LangGraph workflow with checkpointer"""
+    # Build the graph
+    builder = StateGraph(State)
 
-# Add nodes
-builder.add_node("web_search", web_search_node)
-builder.add_node("content_creation", content_creation_node)
-builder.add_node("approval", approval_node)
-builder.add_node("write_to_db", write_to_db_node)
-builder.add_node("cancel", cancel_node)
+    # Add nodes
+    builder.add_node("web_search", web_search_node)
+    builder.add_node("content_creation", content_creation_node)
+    builder.add_node("approval", approval_node)
+    builder.add_node("write_to_db", write_to_db_node)
+    builder.add_node("cancel", cancel_node)
 
-# Define edges
-builder.add_edge(START, "web_search")
-builder.add_edge("web_search", "content_creation")
-builder.add_edge("content_creation", "approval")
-# approval_node returns Command with goto, so no edge needed from approval
-builder.add_edge("write_to_db", END)
-builder.add_edge("cancel", END)
+    # Define edges
+    builder.add_edge(START, "web_search")
+    builder.add_edge("web_search", "content_creation")
+    builder.add_edge("content_creation", "approval")
+    # approval_node returns Command with goto, so no edge needed from approval
+    builder.add_edge("write_to_db", END)
+    builder.add_edge("cancel", END)
 
-# Use a more durable checkpointer in production
-checkpointer = MemorySaver()
-graph = builder.compile(checkpointer=checkpointer)
+    # Compile with checkpointer for interrupt support
+    checkpointer = MemorySaver()
+    compiled_graph = builder.compile(checkpointer=checkpointer)
+
+    # Save Mermaid diagram
+    save_mermaid_diagram(compiled_graph, output_path="assets/graph_setup.png")
+
+    return compiled_graph
+
+
+def create_thread_config(thread_id: str):
+    """Create thread configuration for workflow execution"""
+    return {"configurable": {"thread_id": thread_id}}
+
+
+# Create the compiled graph instance
+graph = create_workflow_graph()

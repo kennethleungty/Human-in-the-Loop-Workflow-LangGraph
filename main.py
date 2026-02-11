@@ -1,12 +1,13 @@
 from langgraph.types import Command
-from src.graph import graph
+from src.graph import graph, create_thread_config
+import json
 
 
 def main():
     """Example usage of the workflow with interrupts"""
 
     # Configuration with thread_id for checkpointing
-    config = {"configurable": {"thread_id": "workflow-001"}}
+    config = create_thread_config("workflow-001")
 
     # Initial state
     initial_state = {"search_results": "", "action_details": "", "status": "pending"}
@@ -15,61 +16,47 @@ def main():
     print("=" * 60)
     print("Starting workflow...")
     print("=" * 60)
-    initial = graph.invoke(initial_state, config=config)
+    result = graph.invoke(initial_state, config=config)
 
     # The workflow pauses at the approval_node interrupt
-    if "__interrupt__" in initial:
-        print("\nWorkflow paused for approval:")
-        print(initial["__interrupt__"])
+    if "__interrupt__" in result:
+        print("WORKFLOW PAUSED - APPROVAL REQUIRED")
+        # Parse and display the action_details
+        action_details = json.loads(result["action_details"])
 
-        # Show current state
-        print("\nCurrent State:")
-        print(f"Status: {initial['status']}")
-        print(f"\n{initial['__interrupt__'][0].value['question']}")
-        print(f"Details:\n{initial['__interrupt__'][0].value['details']}")
+        print("\nArticle Details:")
+        print(f"Title: {action_details['title']}")
+        print(f"URL: {action_details['url']}")
+        print(f"Published: {action_details['published_date']}")
 
-        # Step 2: Resume with the decision
-        # Set to True to approve (routes to write_to_db), False to reject (routes to cancel)
-        print("\n" + "=" * 60)
-        print("Resuming with approval decision: True")
-        print("=" * 60)
-        resumed = graph.invoke(Command(resume=True), config=config)
+        print("\nGenerated X Post:")
+        print("-" * 60)
+        print(action_details["post_content"])
+        print("-" * 60)
 
-        print("\nWorkflow completed!")
-        print(f"Status: {resumed['status']}")
+        # Step 2: Get user decision
+        while True:
+            user_input = input("Approve this post? (y/yes or n/no): ").lower().strip()
+            if user_input in ["y", "yes"]:
+                decision = True
+                break
+            elif user_input in ["n", "no"]:
+                decision = False
+                break
+            else:
+                print("Invalid input. Please enter 'y', 'yes', 'n', or 'no'.")
+
+        # Step 3: Resume with the decision (True -> write_to_db, False -> cancel)
+        print(
+            f"Resuming workflow with decision: {'APPROVED' if decision else 'REJECTED'}"
+        )
+        resumed = graph.invoke(Command(resume=decision), config=config)
+
+        print("WORKFLOW COMPLETED")
+        print(f"Final Status: {resumed['status']}")
     else:
-        print("No interrupt occurred (unexpected)")
-
-
-def main_reject():
-    """Example showing rejection flow"""
-
-    config = {"configurable": {"thread_id": "workflow-002"}}
-
-    initial_state = {"search_results": "", "action_details": "", "status": "pending"}
-
-    print("\n" + "=" * 60)
-    print("Testing rejection flow...")
-    print("=" * 60)
-
-    initial = graph.invoke(initial_state, config=config)
-
-    if "__interrupt__" in initial:
-        print("\nWorkflow paused for approval")
-        print("\n" + "=" * 60)
-        print("Resuming with rejection decision: False")
-        print("=" * 60)
-
-        resumed = graph.invoke(Command(resume=False), config=config)
-
-        print("\nWorkflow cancelled!")
-        print(f"Status: {resumed['status']}")
+        print("\nError: No interrupt occurred (unexpected)")
 
 
 if __name__ == "__main__":
-    # Run approval flow
     main()
-
-    # Run rejection flow
-    print("\n" + "=" * 60)
-    main_reject()
