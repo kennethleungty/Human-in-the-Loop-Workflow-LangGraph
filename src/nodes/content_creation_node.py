@@ -19,29 +19,28 @@ def content_creation_node(state: State) -> State:
 
     client = OpenAI(api_key=api_key)
 
-    # Format article data as input
-    input_text = f"""Article Information:
+    # Combine instructions and article data into single input
+    input_text = f"""{X_POST_INSTRUCTIONS}
 
-Title: {search_data.get('title', 'N/A')}
-URL: {search_data.get('url', 'N/A')}
-Published Date: {search_data.get('published_date', 'N/A')}
+    Article Information:
 
-Content Summary:
-{search_data.get('content', 'N/A')}
+    Title: {search_data.get('title', 'N/A')}
+    URL: {search_data.get('url', 'N/A')}
+    Published Date: {search_data.get('published_date', 'N/A')}
 
-Answer:
-{search_data.get('answer', 'N/A')}"""
+    Article Content:
+    {search_data.get('content', 'N/A')}
+    """
 
     # Generate X post using OpenAI Responses API
     response = client.responses.create(
         model=LLM_MODEL,
-        instructions=X_POST_INSTRUCTIONS,
         input=input_text,
         temperature=TEMPERATURE,
     )
 
     # Extract text content from response output
-    post_content = response.output[0].content[0].text.strip()
+    post_content = response.output_text
 
     # Create action_details JSON with post and article metadata
     action_details = json.dumps(
