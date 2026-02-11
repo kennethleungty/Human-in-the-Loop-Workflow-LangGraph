@@ -1,6 +1,6 @@
 # Human-in-the-Loop X Post Workflow
 
-LangGraph workflow that searches for OpenAI news, generates X posts using GPT-5.2, and requires human approval before publishing.
+LangGraph workflow that searches for OpenAI news, generates X posts using GPT-5-mini, and requires human approval before publishing.
 
 ## How It Works
 
@@ -12,7 +12,7 @@ LangGraph workflow that searches for OpenAI news, generates X posts using GPT-5.
 ## Key Features
 
 - LangGraph interrupt-based approval with checkpointing
-- OpenAI Responses API (gpt-5.2, temperature=1.0)
+- OpenAI Responses API (gpt-5-mini, temperature=1.0)
 - Tavily news search with advanced depth
 - Auto-generated Mermaid diagram visualization
 - Modular node architecture
