@@ -24,6 +24,8 @@ def handle_content_interrupt(result: dict, config: dict):
     while True:
         choice = input("\n(a)pprove | (r)eject | (e)dit: ").lower().strip()
         if choice in ["a", "approve"]:
+            # Resume via Command. Note that the resume value does not have a required format.
+            # It's just whatever we want interrupt() to return inside the node/tool.
             return graph.invoke(Command(resume=True), config=config)
         elif choice in ["r", "reject"]:
             return graph.invoke(Command(resume=False), config=config)
