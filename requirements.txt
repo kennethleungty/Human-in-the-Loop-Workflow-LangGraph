@@ -4,4 +4,5 @@ langgraph>=1.0.8
 langgraph-checkpoint-sqlite>=3.0.3
 openai>=2.20.0
 pre-commit>=4.5.1
+requests>=2.31.0
 tavily-python>=0.7.21

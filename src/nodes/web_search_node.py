@@ -6,7 +6,7 @@ from langgraph.types import Command
 
 def web_search_node(state: State) -> Command[Literal["content_creation"]]:
     """Perform web search using the Tavily tool."""
-    search_results = tavily_search.invoke({"query": "latest top news about OpenAI"})
+    search_results = tavily_search.invoke({"query": state["query"]})
 
     return Command(
         update={**state, "search_results": search_results, "status": "pending"},

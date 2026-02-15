@@ -1,13 +1,13 @@
-# Human-in-the-Loop X Post Workflow
+# Human-in-the-Loop Bluesky Post Workflow
 
-LangGraph workflow that searches for OpenAI news, generates X posts using GPT-5-mini, and requires human approval before publishing.
+LangGraph workflow that searches for OpenAI news, generates Bluesky posts using GPT-5-mini, and requires human approval before publishing.
 
 ## How It Works
 
 1. **Web Search** - Fetches latest OpenAI news via Tavily API
-2. **Content Creation** - Generates sharp X post using OpenAI Responses API
+2. **Content Creation** - Generates sharp Bluesky post using OpenAI Responses API
 3. **Review** - Pauses workflow for human review (approve/reject/edit in terminal)
-4. **Action** - Posts to X if approved, discards if rejected
+4. **Action** - Posts to Bluesky if approved, discards if rejected
 
 ## Key Features
 
@@ -31,6 +31,12 @@ LangGraph workflow that searches for OpenAI news, generates X posts using GPT-5-
    - Get your API key from dashboard
    - Free tier: 1,000 API credits/month
 
+3. **Bluesky Credentials**
+   - Create account at [Bluesky](https://bsky.app/)
+   - Go to Settings → App Passwords
+   - Create new app password (NOT your main password)
+   - Your handle format: `yourname.bsky.social`
+
 ### Installation
 
 ```bash
@@ -39,7 +45,7 @@ pip install -r requirements.txt
 
 # Set environment variables in .env file
 cp .env.example .env
-# Edit .env with your Tavily and OpenAI API keys
+# Edit .env with your OpenAI, Tavily, and Bluesky credentials
 
 # Load environment variables
 source .env

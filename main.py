@@ -37,7 +37,7 @@ def handle_content_interrupt(result: dict, config: dict):
 
 def handle_publish_interrupt(interrupt_value: dict, config: dict):
     """Show final post and get confirm/cancel decision."""
-    print(f"\nReady to publish:\n{interrupt_value['post_content']}")
+    print(f"\nReady to publish on Bluesky:\n{interrupt_value['post_content']}")
 
     while True:
         choice = input("\n(c)onfirm | (x) cancel: ").lower().strip()
@@ -49,10 +49,15 @@ def handle_publish_interrupt(interrupt_value: dict, config: dict):
             print("Invalid input. Enter 'c' or 'x'.")
 
 
-def run_hitl_workflow():
+def run_hitl_workflow(query: str):
     thread_id = f"workflow-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     config = {"configurable": {"thread_id": thread_id}}
-    initial_state = {"search_results": "", "post_data": "", "status": "pending"}
+    initial_state = {
+        "query": query,
+        "search_results": "",
+        "post_data": "",
+        "status": "pending",
+    }
 
     result = graph.invoke(initial_state, config=config)
 
@@ -67,6 +72,13 @@ def run_hitl_workflow():
         else:
             raise ValueError(f"Unknown interrupt action: {action}")
 
+    if result.get("status") == "approved":
+        print("\nPost successfully published on Bluesky")
+    elif result.get("status") == "cancelled":
+        print("\nPublishing cancelled — not posted")
+    elif result.get("status") == "rejected":
+        print("\nPost rejected — not published")
+
 
 if __name__ == "__main__":
-    run_hitl_workflow()
+    run_hitl_workflow(query="latest top news about Anthropic")

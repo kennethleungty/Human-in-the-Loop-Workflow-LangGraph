@@ -9,8 +9,7 @@ def decision_approve_node(state: State) -> Command:
     """Publish approved content using the publish_post tool (which interrupts for confirmation)."""
     post_data = json.loads(state["post_data"])
 
-    # Use post publishing tool
-    publish_post.invoke(
+    result = publish_post.invoke(
         {
             "post_content": post_data["post_content"],
             "title": post_data["title"],
@@ -18,4 +17,5 @@ def decision_approve_node(state: State) -> Command:
         }
     )
 
-    return Command(update={**state, "status": "approved"}, goto=END)
+    status = "approved" if "successfully" in result else "cancelled"
+    return Command(update={**state, "status": status}, goto=END)
