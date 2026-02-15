@@ -4,8 +4,5 @@ from langgraph.graph import END
 
 
 def decision_reject_node(state: State) -> Command:
-    """Node that handles rejection"""
-    print("\n=== POST REJECTED ===")
-    print("Content NOT posted to X")
-
+    """Handle rejection — mark status and end."""
     return Command(update={**state, "status": "rejected"}, goto=END)

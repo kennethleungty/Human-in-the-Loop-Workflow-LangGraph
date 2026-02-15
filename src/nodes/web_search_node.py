@@ -5,11 +5,8 @@ from langgraph.types import Command
 
 
 def web_search_node(state: State) -> Command[Literal["content_creation"]]:
-    """Node that performs web search using the Tavily search tool."""
-    query = "latest top news about OpenAI"
-
-    # Call the tool — pure search, no interrupt here
-    search_results = tavily_search.invoke({"query": query})
+    """Perform web search using the Tavily tool."""
+    search_results = tavily_search.invoke({"query": "latest top news about OpenAI"})
 
     return Command(
         update={**state, "search_results": search_results, "status": "pending"},
