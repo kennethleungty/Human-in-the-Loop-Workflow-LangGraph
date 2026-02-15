@@ -62,7 +62,10 @@ def run_hitl_workflow(query: str):
     result = graph.invoke(initial_state, config=config)
 
     while "__interrupt__" in result:
+        # Get interrupt value at point of interrupt
         interrupt_value = result["__interrupt__"][0].value
+        
+        # Get action at point of interrupt
         action = interrupt_value["action"]
 
         if action == "review_content_generation":

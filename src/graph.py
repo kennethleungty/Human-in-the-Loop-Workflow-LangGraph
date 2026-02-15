@@ -11,6 +11,8 @@ from src.nodes import (
 )
 from src.utils import save_mermaid_diagram
 
+import sqlite3
+
 
 def create_workflow_graph():
     builder = StateGraph(State)
@@ -24,8 +26,13 @@ def create_workflow_graph():
     # Only START edge needed — all nodes use Command(goto=...) for routing
     builder.add_edge(START, "web_search")
 
+    # check_same_thread=False is needed because LangGraph internally uses a
+    # thread pool for checkpoint writes, which differs from the thread that
+    # created the connection. The docs example omits this but it's required
+    # in newer LangGraph versions that parallelize checkpointer operations.
     # checkpointer = InMemorySaver()
-    checkpointer = SqliteSaver(database_path="hitl_workflow.db")
+    checkpointer = SqliteSaver(sqlite3.connect("hitl_workflow.db", check_same_thread=False))
+
     compiled_graph = builder.compile(checkpointer=checkpointer)
 
     save_mermaid_diagram(compiled_graph, output_path="assets/graph_setup.png")
