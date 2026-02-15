@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph, START
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 from src.state import State
 from src.nodes import (
     web_search_node,
@@ -23,7 +24,8 @@ def create_workflow_graph():
     # Only START edge needed — all nodes use Command(goto=...) for routing
     builder.add_edge(START, "web_search")
 
-    checkpointer = InMemorySaver()
+    # checkpointer = InMemorySaver()
+    checkpointer = SqliteSaver(database_path="hitl_workflow.db")
     compiled_graph = builder.compile(checkpointer=checkpointer)
 
     save_mermaid_diagram(compiled_graph, output_path="assets/graph_setup.png")
