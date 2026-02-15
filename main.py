@@ -1,87 +1,106 @@
 from langgraph.types import Command
-from src.graph import graph, create_thread_config
+from src.graph import graph
 import json
 import readline
+from datetime import datetime
 
 
-def main():
-    """Example usage of the workflow with interrupts"""
+def prefill_input(prompt: str, prefill: str = "") -> str:
+    """Input prompt with pre-filled text that user can edit"""
+    readline.set_startup_hook(lambda: readline.insert_text(prefill))
+    try:
+        return input(prompt)
+    finally:
+        readline.set_startup_hook()
 
-    # Configuration with thread_id for checkpointing
-    config = create_thread_config("workflow-001")
 
-    # Initial state
-    initial_state = {"search_results": "", "action_details": "", "status": "pending"}
+def display_content_review(result: dict):
+    """Display generated content for review"""
+    post_data = json.loads(result["post_data"])
+    print(f"\n📰 {post_data['title']}")
+    print(f"🔗 {post_data['url']}")
+    print(f"\n{post_data['post_content']}")
+    return post_data
 
-    # Step 1: Start the workflow - it will run until the interrupt
-    print("\nStarting workflow...\n")
+
+def get_content_decision(post_data: dict) -> bool | str:
+    """Get user decision for content (approve/reject/edit)"""
+    while True:
+        user_input = input("\n(a)pprove | (r)eject | (e)dit: ").lower().strip()
+
+        if user_input in ["a", "approve"]:
+            return True
+        elif user_input in ["r", "reject"]:
+            return False
+        elif user_input in ["e", "edit"]:
+            edited_content = prefill_input("> ", post_data["post_content"]).strip()
+            if edited_content:
+                return edited_content
+        else:
+            print("Invalid input. Enter 'a', 'r', or 'e'.")
+
+
+def handle_content_interrupt(result: dict, config: dict):
+    """Handle content review interrupt"""
+    post_data = display_content_review(result)
+    decision = get_content_decision(post_data)
+    return graph.invoke(Command(resume=decision), config=config)
+
+
+def display_publish_confirmation(interrupt_value: dict):
+    """Display post details for final publish confirmation"""
+    print("\n✅ Ready to publish:")
+    print(interrupt_value["post_content"])
+
+
+def get_publish_decision() -> dict:
+    """Get user decision (confirm/cancel) for publishing"""
+    while True:
+        user_input = input("\n(c)onfirm | (x) cancel: ").lower().strip()
+        if user_input in ["c", "confirm"]:
+            return {"action": "confirm"}
+        elif user_input in ["x", "cancel"]:
+            return {"action": "cancel"}
+        else:
+            print("Invalid input. Enter 'c' or 'x'.")
+
+
+def handle_publish_interrupt(interrupt_value: dict, config: dict):
+    """Handle publish confirmation interrupt"""
+    display_publish_confirmation(interrupt_value)
+    resume_data = get_publish_decision()
+    return graph.invoke(Command(resume=resume_data), config=config)
+
+
+def run_hitl_workflow():
+    """Run the human-in-the-loop workflow with interrupts"""
+    # Generate unique thread_id for each workflow run
+    thread_id = f"workflow-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    config = {"configurable": {"thread_id": thread_id}}
+    initial_state = {
+        "messages": [],
+        "search_results": "",
+        "post_data": "",
+        "status": "pending",
+    }
+
     result = graph.invoke(initial_state, config=config)
 
-    # The workflow pauses at the review_node interrupt
-    # Loop to handle edit cycles
     while "__interrupt__" in result:
-        print("\nWORKFLOW PAUSED - REVIEW REQUIRED")
+        interrupt_data = result["__interrupt__"][0]
+        interrupt_value = (
+            interrupt_data.value if hasattr(interrupt_data, "value") else interrupt_data
+        )
 
-        # Parse and display the action_details
-        action_details = json.loads(result["action_details"])
-
-        print("\nArticle Details:")
-        print(f"Title: {action_details['title']}")
-        print(f"URL: {action_details['url']}")
-        print(f"Published: {action_details['published_date']}")
-
-        print("\nGenerated X Post:")
-        print(action_details["post_content"])
-
-        # Step 2: Get user decision (approve/reject/edit)
-        while True:
-            user_input = (
-                input("Choose action - (a)pprove, (r)eject, or (e)dit: ")
-                .lower()
-                .strip()
-            )
-            if user_input in ["a", "approve"]:
-                decision = True
-                break
-            elif user_input in ["r", "reject"]:
-                decision = False
-                break
-            elif user_input in ["e", "edit"]:
-                print("\nEdit the post content (pre-filled with current content):")
-
-                # Pre-fill input with existing content using readline
-                def prefill_input(prompt, prefill=""):
-                    readline.set_startup_hook(lambda: readline.insert_text(prefill))
-                    try:
-                        return input(prompt)
-                    finally:
-                        readline.set_startup_hook()
-
-                edited_content = prefill_input(
-                    "> ", action_details["post_content"]
-                ).strip()
-                if edited_content:
-                    decision = edited_content
-                    break
-                else:
-                    print("Edit cancelled - content cannot be empty.")
-            else:
-                print("Invalid input. Please enter 'a', 'r', or 'e'.")
-
-        # Step 3: Resume with the decision
-        if isinstance(decision, str):
-            print("\nResuming workflow with edited content (auto-approving)...")
-            # Edit auto-approves and goes to approve node
-            result = graph.invoke(Command(resume=decision), config=config)
-            break
+        if interrupt_value["action"] == "review_content_generation":
+            result = handle_content_interrupt(result, config)
+        elif interrupt_value["action"] == "confirm_publish":
+            result = handle_publish_interrupt(interrupt_value, config)
         else:
-            print(f"\nResuming workflow: {'APPROVED' if decision else 'REJECTED'}")
-            # Approve/reject goes to approve or reject node
-            result = graph.invoke(Command(resume=decision), config=config)
-            break
-
-    # Final status is printed by approve_node or reject_node
+            raise ValueError(
+                f"Unknown interrupt action: {interrupt_value.get('action')}"
+            )
 
 
 if __name__ == "__main__":
-    main()
+    run_hitl_workflow()

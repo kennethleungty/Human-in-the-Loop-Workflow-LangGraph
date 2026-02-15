@@ -1,12 +1,12 @@
-from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import StateGraph, START
+from langgraph.checkpoint.memory import InMemorySaver
 from src.state import State
 from src.nodes import (
     web_search_node,
-    content_creation_node,
-    review_node,
-    approve_node,
-    reject_node,
+    content_generation_node,
+    human_review_node,
+    decision_approve_node,
+    decision_reject_node,
 )
 from src.utils import save_mermaid_diagram
 
@@ -18,21 +18,20 @@ def create_workflow_graph():
 
     # Add nodes
     builder.add_node("web_search", web_search_node)
-    builder.add_node("content_creation", content_creation_node)
-    builder.add_node("review", review_node)
-    builder.add_node("approve", approve_node)
-    builder.add_node("reject", reject_node)
+    builder.add_node("content_creation", content_generation_node)
+    builder.add_node("review", human_review_node)
+    builder.add_node("approve", decision_approve_node)
+    builder.add_node("reject", decision_reject_node)
 
     # Define edges
+    # Only START edge needed - all nodes use Command with goto for routing
     builder.add_edge(START, "web_search")
-    builder.add_edge("web_search", "content_creation")
-    builder.add_edge("content_creation", "review")
-    # review_node returns Command with goto, so no edge needed from review
-    builder.add_edge("approve", END)
-    builder.add_edge("reject", END)
 
     # Compile with checkpointer for interrupt support
-    checkpointer = MemorySaver()
+    # InMemorySaver: Fast, data cleared on process restart
+    # SqliteSaver: Persistent across restarts, useful for resuming interrupted workflows
+    checkpointer = InMemorySaver()
+    # checkpointer = SqliteSaver(sqlite3.connect("approval.db"))
     compiled_graph = builder.compile(checkpointer=checkpointer)
 
     # Save Mermaid diagram
@@ -41,10 +40,7 @@ def create_workflow_graph():
     return compiled_graph
 
 
-def create_thread_config(thread_id: str):
-    """Create thread configuration for workflow execution"""
-    return {"configurable": {"thread_id": thread_id}}
-
-
 # Create the compiled graph instance
+# This checkpointer persists for the lifetime of the Python process
+# Each workflow run uses a unique thread_id to avoid state collision
 graph = create_workflow_graph()
