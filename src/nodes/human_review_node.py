@@ -8,7 +8,7 @@ def human_review_node(state: State) -> Command[Literal["approve", "reject"]]:
     """Pause for human review. Interrupt surfaces post details to the caller."""
     decision = interrupt(
         {
-            "action": "review_content_generation",
+            "action": "handle_content_interrupt",
             "details": state["post_data"],
         }
     )
