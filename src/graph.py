@@ -1,5 +1,4 @@
 from langgraph.graph import StateGraph, START
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.sqlite import SqliteSaver
 from src.state import State
 from src.nodes import (
@@ -14,7 +13,7 @@ from src.utils import save_mermaid_diagram
 import sqlite3
 
 
-def create_workflow_graph():
+def create_graph():
     builder = StateGraph(State)
 
     builder.add_node("web_search", web_search_node)
@@ -31,7 +30,9 @@ def create_workflow_graph():
     # created the connection. The docs example omits this but it's required
     # in newer LangGraph versions that parallelize checkpointer operations.
     # checkpointer = InMemorySaver()
-    checkpointer = SqliteSaver(sqlite3.connect("hitl_workflow.db", check_same_thread=False))
+    checkpointer = SqliteSaver(
+        sqlite3.connect("hitl_workflow.db", check_same_thread=False)
+    )
 
     compiled_graph = builder.compile(checkpointer=checkpointer)
 
@@ -39,4 +40,4 @@ def create_workflow_graph():
     return compiled_graph
 
 
-graph = create_workflow_graph()
+graph = create_graph()

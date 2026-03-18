@@ -4,8 +4,12 @@ from datetime import datetime
 
 
 def run_hitl_workflow(query: str):
+    """
+    Runs the HITL workflow for a given query.
+    """
     thread_id = f"workflow-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     config = {"configurable": {"thread_id": thread_id}}
+
     initial_state = {
         "query": query,
         "search_results": "",
